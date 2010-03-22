@@ -1,51 +1,30 @@
-require 'action_dispatch'
-require 'webrat'
-
-# Preliminary documentation (more to come ....):
-#
-#   allow_forgery_protection is set to false
-#   - you can set it to true in a before(:each) block
-#     if you have a specific example that needs it, but
-#     be sure to restore it to false (or supply tokens
-#     to all of your example requests)
+require 'action_controller/test_case'
 
 module ControllerExampleGroupBehaviour
-  include ActionDispatch::Assertions
-  include ActionDispatch::Integration::Runner
-  include Webrat::Matchers
-  include Webrat::Methods
-  include Rspec::Matchers
-
-  def self.setup(*args); end
-  def self.teardown(*args); end
-
-  include ActionController::TemplateAssertions
+  attr_reader :response
 
   def self.included(mod)
     mod.before do
       @_result = Struct.new(:add_assertion).new
-      ActionController::Base.allow_forgery_protection = false
+      @router = Rails.application.routes
+      setup_controller_request_and_response
     end
-  end
 
-  def app 
-    described_class.action(@_action).tap do |endpoint|
-      def endpoint.routes
-        Rails.application.routes
-      end
+    def mod.setup(*methods)
     end
-  end
 
-  %w[get post put delete head].map do |method|
-    eval <<-CODE
-      def #{method}(*args)
-        @_action = args.shift
-        super '/', *args
-      end
-    CODE
+    def mod.teardown(*methods)
+    end
+
+    def mod.controller_class
+      metadata[:example_group][:describes]
+    end
   end
 
   Rspec.configure do |c|
-    c.include self, :example_group => { :file_path => /\bspec\/controllers\// }
+    c.extend ActionController::TestCaseClassMethods, :example_group => { :file_path => /\bspec\/controllers\// }
+    [self, Test::Unit::Assertions, ActionController::TestCaseInstanceMethods, ActionController::TemplateAssertions].each do |m|
+      c.include m, :example_group => { :file_path => /\bspec\/controllers\// }
+    end
   end
 end
