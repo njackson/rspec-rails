@@ -7,13 +7,15 @@ module ControllerExampleGroupBehaviour
     mod.before do
       @_result = Struct.new(:add_assertion).new
       @router = Rails.application.routes
-      setup_controller_request_and_response
+      # setup_controller_request_and_response
     end
 
     def mod.setup(*methods)
+      methods.each {|m| before { send m }}
     end
 
     def mod.teardown(*methods)
+      methods.each {|m| after { send m }}
     end
 
     def mod.controller_class
